@@ -1,6 +1,6 @@
 #include "azure/azure_Client.h"
 #include "amqp/amqp_Client.h"
-#include "configuration.h"
+#include "configuration/configuration.h"
 
 #include <cute-adapter-production/linux/SignalHandler.h>
 
@@ -45,7 +45,7 @@ int main(int argc, char *argv[])
 
     QCoreApplication app(argc, argv);
 
-    const Options options = parseArguments(app.arguments());
+    const auto options = configuration::parseArguments(app.arguments());
     printInfo(options);
 
     azure::Client azureClient{loadParameter(options), AMQP_Protocol_over_WebSocketsTls};

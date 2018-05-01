@@ -1,13 +1,13 @@
 #include "azure_Client.h"
 
-#include "Logger.h"
+#include "iotsdk/logger.h"
+#include "logger.h"
 
 #include <azure_c_shared_utility/platform.h>
 
 #include <QFile>
 #include <QThread>
 #include <QUuid>
-#include <QDebug>
 #include <QCoreApplication>
 
 namespace azure
@@ -21,7 +21,7 @@ Client::Client(const Connection::Parameter &parameter_, IOTHUB_CLIENT_TRANSPORT_
     worker(nullptr),
     cloudThread(nullptr)
 {
-    xlogging_set_log_function(azureiotsdk_logger);
+    xlogging_set_log_function(azure::iotsdk::loghandler);
     platform_init();
 }
 
@@ -50,23 +50,23 @@ void Client::connect()
         QObject::connect(worker, &Connection::received, this, &Client::received);
 
         QObject::connect(worker, &Connection::destroyed, []{
-            qDebug() << "cloud worker destroyed";
+            qCDebug(logger) << "cloud worker destroyed";
         });
         QObject::connect(cloudThread, &QThread::destroyed, []{
-            qDebug() << "cloud thread destroyed";
+            qCDebug(logger) << "cloud thread destroyed";
         });
         QObject::connect(cloudThread, &QThread::finished, []{
-            qDebug() << "cloud thread finished";
+            qCDebug(logger) << "cloud thread finished";
         });
         QObject::connect(cloudThread, &QThread::started, []{
-            qDebug() << "cloud thread started";
+            qCDebug(logger) << "cloud thread started";
         });
 
         cloudThread->start(QThread::LowPriority); // we set a low prio to reduce impact on the rest of the sw
     } catch (std::runtime_error e) {
         worker = nullptr;
         cloudThread = nullptr;
-        qCritical() << "could not create connection:" << e.what();
+        qCCritical(logger) << "could not create connection:" << e.what();
         connectingError(Connection::ConnectionError::CanNotCreateConnection, 0);
     }
 }
