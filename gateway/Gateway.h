@@ -19,6 +19,7 @@ public slots:
 
 signals:
     void sendCloudMessage(const QString &data, const QString &contentType, const QString &contentEncoding, const QStringMap &headers);
+    void sendCloudDeviceTwin(const QString &data);
 
 };
 

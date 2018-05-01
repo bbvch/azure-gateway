@@ -41,6 +41,7 @@ int main(int argc, char *argv[])
 
     QObject::connect(&queue, &amqp::Client::received, &gateway, &gateway::Gateway::fromQueue);
     QObject::connect(&gateway, &gateway::Gateway::sendCloudMessage, &azureClient, &azure::Client::sendMessage);
+    QObject::connect(&gateway, &gateway::Gateway::sendCloudDeviceTwin, &azureClient, &azure::Client::sendDeviceTwin);
     QObject::connect(&azureClient, &azure::Client::sent, &queue, &amqp::Client::ackLastMessage);
 
     return app.exec();
