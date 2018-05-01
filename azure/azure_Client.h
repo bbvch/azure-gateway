@@ -26,7 +26,8 @@ public:
 public slots:
     void connect();
     void disconnect();
-    void send(const QString& data, const QString &contentType, const QString &contentEncoding, const QStringMap &headers);
+    void sendMessage(const QString& data, const QString &contentType, const QString &contentEncoding, const QStringMap &headers);
+    void sendDeviceTwin(const QString& data);
 
 signals:
     void connected();

@@ -37,6 +37,12 @@ void sendConfirmationCallback(IOTHUB_CLIENT_CONFIRMATION_RESULT result, void* us
     client->onSendConfirmed(result);
 }
 
+static void sendReportedStateCallback(int status_code, void* userContextCallback)
+{
+    Connection *client = static_cast<Connection*>(userContextCallback);
+    client->onSendReportedState(status_code);
+}
+
 }
 
 
@@ -101,13 +107,14 @@ void Connection::tick()
     QTimer::singleShot(10, this, SLOT(tick()));
 }
 
-void Connection::send(const QString &data, const QString &contentType, const QString &contentEncoding, const QStringMap &headers)
+void Connection::sendMessage(const QString &data, const QString &contentType, const QString &contentEncoding, const QStringMap &headers)
 {
     qCDebug(logger) << "send message with header" << headers;
 
+    const auto raw = data.toUtf8();
     std::unique_ptr<IOTHUB_MESSAGE_HANDLE_DATA_TAG, std::function<void(IOTHUB_MESSAGE_HANDLE_DATA_TAG*)>>
     messageHandle(
-        IoTHubMessage_CreateFromByteArray(reinterpret_cast<const unsigned char*>(data.toUtf8().data()), data.length()),
+        IoTHubMessage_CreateFromByteArray(reinterpret_cast<const unsigned char*>(raw.data()), raw.length()),
         IoTHubMessage_Destroy
     );
 
@@ -154,6 +161,20 @@ void Connection::send(const QString &data, const QString &contentType, const QSt
     }
 
     IOTHUB_CLIENT_RESULT sendResult = IoTHubClient_LL_SendEventAsync(iotHubClientHandle, messageHandle.get(), sendConfirmationCallback, this);
+    if (sendResult != 0)
+    {
+        sendError(SendError::RequestFailed, sendResult);
+        return;
+    }
+}
+
+void Connection::sendDeviceTwin(const QString &data)
+{
+    qCDebug(logger) << "send device twin";
+
+    const auto raw = data.toUtf8();
+
+    const IOTHUB_CLIENT_RESULT sendResult = IoTHubClient_LL_SendReportedState(iotHubClientHandle, reinterpret_cast<const unsigned char*>(raw.data()), raw.size(), sendReportedStateCallback, this);
     if (sendResult != 0)
     {
         sendError(SendError::RequestFailed, sendResult);
@@ -210,6 +231,20 @@ void Connection::onSendConfirmed(IOTHUB_CLIENT_CONFIRMATION_RESULT result)
     else
     {
         sendError(SendError::ConfirmationFailed, result);
+    }
+}
+
+void Connection::onSendReportedState(int status_code)
+{
+    qCDebug(logger) << "send reported state received:" << status_code;
+
+    if (status_code == 200) //NOTE 200 seems to be the success code
+    {
+        sent();
+    }
+    else
+    {
+        sendError(SendError::ConfirmationFailed, status_code);
     }
 }
 

@@ -1,5 +1,6 @@
 #include "azure/azure_Client.h"
 #include "amqp/amqp_Client.h"
+#include "gateway/Gateway.h"
 #include "configuration/configuration.h"
 
 #include <cute-adapter-production/linux/SignalHandler.h>
@@ -23,6 +24,7 @@ int main(int argc, char *argv[])
 
     azure::Client azureClient{loadParameter(options), AMQP_Protocol_over_WebSocketsTls};
     amqp::Client queue{options.queue};
+    gateway::Gateway gateway{};
     cute_adapter_production::linux::SignalHandler signalHandler{};
 
     QTimer receivedTick{};
@@ -37,7 +39,9 @@ int main(int argc, char *argv[])
     QObject::connect(&azureClient, &azure::Client::connectingError, &app, &QCoreApplication::quit);
     QObject::connect(&azureClient, &azure::Client::disconnected, &app, &QCoreApplication::quit);
 
-    QObject::connect(&queue, SIGNAL(received(QString, QString, QString, QStringMap)), &azureClient, SLOT(send(QString, QString, QString, QStringMap)));
+    QObject::connect(&queue, &amqp::Client::received, &gateway, &gateway::Gateway::fromQueue);
+    QObject::connect(&gateway, &gateway::Gateway::sendCloudMessage, &azureClient, &azure::Client::sendMessage);
+    QObject::connect(&gateway, &gateway::Gateway::sendCloudDeviceTwin, &azureClient, &azure::Client::sendDeviceTwin);
     QObject::connect(&azureClient, &azure::Client::sent, &queue, &amqp::Client::ackLastMessage);
 
     return app.exec();
