@@ -96,5 +96,17 @@ void Client::sendMessage(const QString &data, const QString &contentType, const 
     Q_ASSERT(ok);
 }
 
+void Client::sendDeviceTwin(const QString &data)
+{
+    if (!worker)
+    {
+        sendError(Connection::SendError::NoConnection, 0);
+        return;
+    }
+
+    const bool ok = QMetaObject::invokeMethod(worker, "sendDeviceTwin", Qt::QueuedConnection, Q_ARG(QString, data));
+    Q_ASSERT(ok);
+}
+
 
 }

@@ -45,6 +45,7 @@ public:
     void onConnectStatusChanged(IOTHUB_CLIENT_CONNECTION_STATUS result, IOTHUB_CLIENT_CONNECTION_STATUS_REASON reason);
     IOTHUBMESSAGE_DISPOSITION_RESULT onReceive(IOTHUB_MESSAGE_HANDLE message);
     void onSendConfirmed(IOTHUB_CLIENT_CONFIRMATION_RESULT result);
+    void onSendReportedState(int status_code);
 
 signals:
     void connected();
@@ -57,6 +58,7 @@ signals:
 
 public slots:
     void sendMessage(const QString &data, const QString &contentType, const QString &contentEncoding, const QStringMap &headers);
+    void sendDeviceTwin(const QString& data);
 
 private slots:
     void tick();
