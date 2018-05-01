@@ -84,7 +84,7 @@ void Client::disconnect()
     }
 }
 
-void Client::send(const QString &data, const QString &contentType, const QString &contentEncoding, const QStringMap &headers)
+void Client::sendMessage(const QString &data, const QString &contentType, const QString &contentEncoding, const QStringMap &headers)
 {
     if (!worker)
     {
@@ -92,7 +92,7 @@ void Client::send(const QString &data, const QString &contentType, const QString
         return;
     }
 
-    const bool ok = QMetaObject::invokeMethod(worker, "send", Qt::QueuedConnection, Q_ARG(QString, data), Q_ARG(QString, contentType), Q_ARG(QString, contentEncoding), Q_ARG(QStringMap, headers));
+    const bool ok = QMetaObject::invokeMethod(worker, "sendMessage", Qt::QueuedConnection, Q_ARG(QString, data), Q_ARG(QString, contentType), Q_ARG(QString, contentEncoding), Q_ARG(QStringMap, headers));
     Q_ASSERT(ok);
 }
 

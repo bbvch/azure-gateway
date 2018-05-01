@@ -56,7 +56,7 @@ signals:
     void received(const QString &data);
 
 public slots:
-    void send(const QString &data, const QString &contentType, const QString &contentEncoding, const QStringMap &headers);
+    void sendMessage(const QString &data, const QString &contentType, const QString &contentEncoding, const QStringMap &headers);
 
 private slots:
     void tick();

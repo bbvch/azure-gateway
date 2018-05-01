@@ -101,7 +101,7 @@ void Connection::tick()
     QTimer::singleShot(10, this, SLOT(tick()));
 }
 
-void Connection::send(const QString &data, const QString &contentType, const QString &contentEncoding, const QStringMap &headers)
+void Connection::sendMessage(const QString &data, const QString &contentType, const QString &contentEncoding, const QStringMap &headers)
 {
     qCDebug(logger) << "send message with header" << headers;
 
