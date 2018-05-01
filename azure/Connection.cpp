@@ -1,11 +1,12 @@
 #include "Connection.h"
 
+#include "logger.h"
+
 #include <azureiot/iothub_client_options.h>
 #include <azureiot/iothubtransporthttp.h>
 #include <azureiot/iothub_client.h>
 
 #include <QThread>
-#include <QDebug>
 #include <QUuid>
 #include <QTimer>
 
@@ -102,6 +103,8 @@ void Connection::tick()
 
 void Connection::send(const QString &data, const QString &contentType, const QString &contentEncoding, const QStringMap &headers)
 {
+    qCDebug(logger) << "send message with header" << headers;
+
     std::unique_ptr<IOTHUB_MESSAGE_HANDLE_DATA_TAG, std::function<void(IOTHUB_MESSAGE_HANDLE_DATA_TAG*)>>
     messageHandle(
         IoTHubMessage_CreateFromByteArray(reinterpret_cast<const unsigned char*>(data.toUtf8().data()), data.length()),
@@ -160,16 +163,18 @@ void Connection::send(const QString &data, const QString &contentType, const QSt
 
 void Connection::onConnectStatusChanged(IOTHUB_CLIENT_CONNECTION_STATUS result, IOTHUB_CLIENT_CONNECTION_STATUS_REASON reason)
 {
-    qDebug() << "Connection Status:"
+    qCDebug(logger) << "Connection Status:"
              << ENUM_TO_STRING(IOTHUB_CLIENT_CONNECTION_STATUS, result)
              << ENUM_TO_STRING(IOTHUB_CLIENT_CONNECTION_STATUS_REASON, reason);
 
     if ((result == IOTHUB_CLIENT_CONNECTION_AUTHENTICATED) && (reason == IOTHUB_CLIENT_CONNECTION_OK))
     {
+        qCInfo(logger) << "connected";
         connected();
     }
     else
     {
+        qCWarning(logger) << "connection error:" << ENUM_TO_STRING(IOTHUB_CLIENT_CONNECTION_STATUS_REASON, reason);
         connectingError(ConnectionError::CanNotConnect, reason);
     }
 }
@@ -183,20 +188,20 @@ IOTHUBMESSAGE_DISPOSITION_RESULT Connection::onReceive(IOTHUB_MESSAGE_HANDLE mes
     if (result == IOTHUB_MESSAGE_OK)
     {
         QString incomingMessage(QByteArray(buffer, messageSize));
-        qDebug() << "Incoming message" << incomingMessage;
+        qCDebug(logger) << "Incoming message" << incomingMessage;
         received(incomingMessage);
         return IOTHUBMESSAGE_ACCEPTED;
     }
     else
     {
-        qWarning() << "Failure while unpacking incoming message" << ENUM_TO_STRING(IOTHUB_MESSAGE_RESULT, result);
+        qCWarning(logger) << "Failure while unpacking incoming message" << ENUM_TO_STRING(IOTHUB_MESSAGE_RESULT, result);
         return IOTHUBMESSAGE_REJECTED;
     }
 }
 
 void Connection::onSendConfirmed(IOTHUB_CLIENT_CONFIRMATION_RESULT result)
 {
-    qDebug() << "Confirmation received for message with result =" << ENUM_TO_STRING(IOTHUB_CLIENT_CONFIRMATION_RESULT, result);
+    qCDebug(logger) << "send confirmation received:" << ENUM_TO_STRING(IOTHUB_CLIENT_CONFIRMATION_RESULT, result);
 
     if (result == IOTHUB_CLIENT_CONFIRMATION_OK)
     {

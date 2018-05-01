@@ -1,6 +1,6 @@
 #include "amqp_Client.h"
 
-#include <QDebug>
+#include "logger.h"
 
 
 namespace amqp
@@ -56,7 +56,7 @@ QStringMap readHeaders(const amqp_basic_properties_t &properties)
                 break;
             }
             default: {
-                qWarning() << "received header" << key << "with unhandled type" << QChar{entry.value.kind};
+                qCWarning(logger) << "received header" << key << "with unhandled type" << QChar{entry.value.kind};
                 break;
             }
             }
@@ -86,6 +86,7 @@ void Client::tick()
     const auto content_encoding = to_string(message->message.properties.content_encoding);
     const auto headers = readHeaders(message->message.properties);
 
+    qCDebug(logger) << "received message:" << message->delivery_tag;
     unansweredMessages.push_back(message->delivery_tag);
 
     received(body, content_type, content_encoding, headers);
@@ -94,7 +95,7 @@ void Client::tick()
 void Client::ackLastMessage()
 {
     if (unansweredMessages.empty()) {
-        qWarning() << "can not ack message with no unanswerded messages";
+        qCWarning(logger) << "can not ack message with no unanswerded messages";
         return;
     }
 
@@ -102,6 +103,7 @@ void Client::ackLastMessage()
 
     const int ack_res = amqp_basic_ack(conn.get(), *channel.get(), tag, 0);
     if (ack_res == 0) {
+        qCDebug(logger) << "acknowledged message:" << tag;
         unansweredMessages.pop_front();
         acked();
     } else {

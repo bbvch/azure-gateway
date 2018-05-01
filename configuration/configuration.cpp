@@ -1,16 +1,20 @@
 #include "configuration.h"
 
+#include "logger.h"
+
 #include <QFile>
 #include <QStandardPaths>
 #include <QCommandLineParser>
-#include <QDebug>
+
+namespace configuration
+{
 
 
 QString readFile(const QString &filename)
 {
     QFile file{filename};
     if (!file.open(QFile::ReadOnly)) {
-        qCritical() << "Could not read file" << filename;
+        qCCritical(logger) << "Could not read file" << filename;
         return {};
     }
     QTextStream stream{&file};
@@ -22,7 +26,7 @@ QString locate(const QString &filename)
     const QString path = QStandardPaths::locate(QStandardPaths::AppConfigLocation, filename);
 
     if (path.isEmpty()) {
-        qCritical() << "configuration file" << filename << "not found in" << QStandardPaths::standardLocations(QStandardPaths::AppConfigLocation);
+        qCCritical(logger) << "configuration file" << filename << "not found in" << QStandardPaths::standardLocations(QStandardPaths::AppConfigLocation);
     }
 
     return path;
@@ -39,8 +43,8 @@ azure::Connection::Parameter loadParameter(const Options &options)
         qFatal("certificate or private key not found");
     }
 
-    qInfo() << "using certification file" << certificateFile;
-    qInfo() << "using private key file" << privatekeyFile;
+    qCInfo(logger) << "using certification file" << certificateFile;
+    qCInfo(logger) << "using private key file" << privatekeyFile;
 
     const QString certificate = readFile(certificateFile);
     const QString privatekey = readFile(privatekeyFile);
@@ -108,8 +112,10 @@ Options parseArguments(const QStringList &arguments)
 
 void printInfo(const Options &value)
 {
-    qInfo() << "connecting to host" << value.hostname;
-    qInfo() << "using device id" << value.deviceId;
-    qInfo() << "read messages from amqp queue" << value.queue;
+    qCInfo(logger) << "connecting to host" << value.hostname;
+    qCInfo(logger) << "using device id" << value.deviceId;
+    qCInfo(logger) << "read messages from amqp queue" << value.queue;
 }
 
+
+}

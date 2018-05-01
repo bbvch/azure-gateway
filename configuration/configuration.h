@@ -4,6 +4,9 @@
 
 #include <QString>
 
+namespace configuration
+{
+
 
 struct Options
 {
@@ -16,3 +19,6 @@ struct Options
 Options parseArguments(const QStringList &);
 void printInfo(const Options &);
 azure::Connection::Parameter loadParameter(const Options &);
+
+
+}

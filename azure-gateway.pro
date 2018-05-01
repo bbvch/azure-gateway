@@ -7,26 +7,35 @@ TEMPLATE = app
 
 CONFIG += warn_on
 
+OBJECTS_DIR = ./$$TARGET-obj/  # workaround for: https://bugreports.qt.io/browse/QTBUG-50803
+CONFIG += object_parallel_to_source
+
 QMAKE_CXXFLAGS += -Wall -Wextra -pedantic
 QMAKE_CXXFLAGS += -std=c++17
 
 SOURCES += \
     main.cpp \
-    azure/Logger.cpp \
     azure/Connection.cpp \
     amqp/utility.cpp \
     amqp/amqp_Client.cpp \
+    amqp/logger.cpp \
     azure/azure_Client.cpp \
-    configuration.cpp \
+    configuration/configuration.cpp \
+    configuration/logger.cpp \
+    azure/iotsdk/logger.cpp \
+    azure/logger.cpp \
 
 HEADERS += \
-    azure/Logger.h \
     azure/Connection.h \
     amqp/utility.h \
     QStringMap.h \
     amqp/amqp_Client.h \
+    amqp/logger.h \
     azure/azure_Client.h \
-    configuration.h \
+    configuration/configuration.h \
+    configuration/logger.h \
+    azure/iotsdk/logger.h \
+    azure/logger.h \
 
 target.path = /usr/bin/
 INSTALLS += target
