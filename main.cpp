@@ -10,33 +10,6 @@
 #include <QDebug>
 #include <QTimer>
 
-namespace
-{
-
-
-void connectInfo(azure::Client &client)
-{
-    QObject::connect(&client, &azure::Client::connected, [](){
-        qInfo() << "connected to cloud";
-    });
-    QObject::connect(&client, &azure::Client::disconnected, [](){
-        qInfo() << "disconnected from cloud";
-    });
-    QObject::connect(&client, &azure::Client::connectingError, [](azure::Connection::ConnectionError error, int code){
-        qCritical() << error << "code" << code;
-    });
-    QObject::connect(&client, &azure::Client::sent, []{
-        qDebug() << "message sent";
-    });
-
-    QObject::connect(&client, &azure::Client::received, [](const QString &){
-        qWarning() << "received message, did not expect one";
-    });
-}
-
-
-}
-
 
 int main(int argc, char *argv[])
 {
@@ -55,8 +28,6 @@ int main(int argc, char *argv[])
     QTimer receivedTick{};
     receivedTick.setInterval(10);
     receivedTick.setSingleShot(false);
-
-    connectInfo(azureClient);
 
     QTimer::singleShot(0, &azureClient, &azure::Client::connect);
     QObject::connect(&azureClient, SIGNAL(connected()), &receivedTick, SLOT(start()));

@@ -103,6 +103,8 @@ void Connection::tick()
 
 void Connection::send(const QString &data, const QString &contentType, const QString &contentEncoding, const QStringMap &headers)
 {
+    qCDebug(logger) << "send message with header" << headers;
+
     std::unique_ptr<IOTHUB_MESSAGE_HANDLE_DATA_TAG, std::function<void(IOTHUB_MESSAGE_HANDLE_DATA_TAG*)>>
     messageHandle(
         IoTHubMessage_CreateFromByteArray(reinterpret_cast<const unsigned char*>(data.toUtf8().data()), data.length()),
@@ -167,10 +169,12 @@ void Connection::onConnectStatusChanged(IOTHUB_CLIENT_CONNECTION_STATUS result, 
 
     if ((result == IOTHUB_CLIENT_CONNECTION_AUTHENTICATED) && (reason == IOTHUB_CLIENT_CONNECTION_OK))
     {
+        qCInfo(logger) << "connected";
         connected();
     }
     else
     {
+        qCWarning(logger) << "connection error:" << ENUM_TO_STRING(IOTHUB_CLIENT_CONNECTION_STATUS_REASON, reason);
         connectingError(ConnectionError::CanNotConnect, reason);
     }
 }
@@ -197,7 +201,7 @@ IOTHUBMESSAGE_DISPOSITION_RESULT Connection::onReceive(IOTHUB_MESSAGE_HANDLE mes
 
 void Connection::onSendConfirmed(IOTHUB_CLIENT_CONFIRMATION_RESULT result)
 {
-    qCDebug(logger) << "Confirmation received for message with result =" << ENUM_TO_STRING(IOTHUB_CLIENT_CONFIRMATION_RESULT, result);
+    qCDebug(logger) << "send confirmation received:" << ENUM_TO_STRING(IOTHUB_CLIENT_CONFIRMATION_RESULT, result);
 
     if (result == IOTHUB_CLIENT_CONFIRMATION_OK)
     {

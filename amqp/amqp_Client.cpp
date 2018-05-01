@@ -86,6 +86,7 @@ void Client::tick()
     const auto content_encoding = to_string(message->message.properties.content_encoding);
     const auto headers = readHeaders(message->message.properties);
 
+    qCDebug(logger) << "received message:" << message->delivery_tag;
     unansweredMessages.push_back(message->delivery_tag);
 
     received(body, content_type, content_encoding, headers);
@@ -102,6 +103,7 @@ void Client::ackLastMessage()
 
     const int ack_res = amqp_basic_ack(conn.get(), *channel.get(), tag, 0);
     if (ack_res == 0) {
+        qCDebug(logger) << "acknowledged message:" << tag;
         unansweredMessages.pop_front();
         acked();
     } else {
