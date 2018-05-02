@@ -1,10 +1,12 @@
 #pragma once
 
 #include "QStringMap.h"
+#include "iotsdk/ClientAdapter.h"
 
 #include <azureiot/iothub_client_ll.h>
 
 #include <QObject>
+#include <memory>
 
 
 namespace azure
@@ -12,7 +14,8 @@ namespace azure
 
 
 class Connection :
-        public QObject
+        public QObject,
+        private iotsdk::ClientAdapterHandler
 {
     Q_OBJECT
 
@@ -40,12 +43,6 @@ public:
 
 
     explicit Connection(const Parameter &parameter, IOTHUB_CLIENT_TRANSPORT_PROVIDER protocol, QObject *parent = nullptr);
-    ~Connection();
-
-    void onConnectStatusChanged(IOTHUB_CLIENT_CONNECTION_STATUS result, IOTHUB_CLIENT_CONNECTION_STATUS_REASON reason);
-    IOTHUBMESSAGE_DISPOSITION_RESULT onReceive(IOTHUB_MESSAGE_HANDLE message);
-    void onSendConfirmed(IOTHUB_CLIENT_CONFIRMATION_RESULT result);
-    void onSendReportedState(int status_code);
 
 signals:
     void connected();
@@ -64,7 +61,12 @@ private slots:
     void tick();
 
 private:
-    const IOTHUB_CLIENT_LL_HANDLE iotHubClientHandle;
+    iotsdk::ClientAdapter client;
+
+    void connectionStatusChanged(IOTHUB_CLIENT_CONNECTION_STATUS result, IOTHUB_CLIENT_CONNECTION_STATUS_REASON reason) override;
+    IOTHUBMESSAGE_DISPOSITION_RESULT messageReceived(IOTHUB_MESSAGE_HANDLE message) override;
+    void messageSendResult(IOTHUB_CLIENT_CONFIRMATION_RESULT result) override;
+    void deviceTwinSendResult(int statusCode) override;
 
 };
 
