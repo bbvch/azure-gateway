@@ -26,6 +26,8 @@ SOURCES += \
     azure/logger.cpp \
     gateway/Gateway.cpp \
     gateway/logger.cpp \
+    azure/iotsdk/MessageAdapter.cpp \
+    azure/iotsdk/ClientAdapter.cpp \
 
 HEADERS += \
     azure/Connection.h \
@@ -40,6 +42,9 @@ HEADERS += \
     azure/logger.h \
     gateway/Gateway.h \
     gateway/logger.h \
+    azure/iotsdk/MessageAdapter.h \
+    azure/iotsdk/ClientAdapter.h \
+    azure/iotsdk/ClientAdapterHandler.h \
 
 target.path = /usr/bin/
 INSTALLS += target

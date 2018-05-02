@@ -16,79 +16,28 @@
 namespace azure
 {
 
-namespace
-{
-
-static IOTHUBMESSAGE_DISPOSITION_RESULT receiveMessageCallback(IOTHUB_MESSAGE_HANDLE message, void* userContextCallback)
-{
-    Connection *client = static_cast<Connection*>(userContextCallback);
-    return client->onReceive(message);
-}
-
-static void connectionStatusCallback(IOTHUB_CLIENT_CONNECTION_STATUS result, IOTHUB_CLIENT_CONNECTION_STATUS_REASON reason, void* userContextCallback)
-{
-    Connection *client = static_cast<Connection*>(userContextCallback);
-    client->onConnectStatusChanged(result, reason);
-}
-
-void sendConfirmationCallback(IOTHUB_CLIENT_CONFIRMATION_RESULT result, void* userContextCallback)
-{
-    Connection *client = static_cast<Connection*>(userContextCallback);
-    client->onSendConfirmed(result);
-}
-
-static void sendReportedStateCallback(int status_code, void* userContextCallback)
-{
-    Connection *client = static_cast<Connection*>(userContextCallback);
-    client->onSendReportedState(status_code);
-}
-
-}
-
 
 Connection::Connection(const Parameter &parameter, IOTHUB_CLIENT_TRANSPORT_PROVIDER protocol, QObject *parent) :
     QObject(parent),
-    iotHubClientHandle(IoTHubClient_LL_CreateFromConnectionString(parameter.connectionString.toUtf8().data(), protocol))
+    client{parameter.connectionString.toUtf8().toStdString(), protocol, *this}
 {
-    if (!iotHubClientHandle)
-    {
-        throw std::runtime_error("can not create connection handle");
-    }
-
-    IOTHUB_CLIENT_RESULT result = IoTHubClient_LL_SetMessageCallback(iotHubClientHandle, receiveMessageCallback, this);
-    if (result != IOTHUB_CLIENT_OK)
-    {
-        throw std::runtime_error("can not register receive callback");
-    }
-
-    result = IoTHubClient_LL_SetConnectionStatusCallback(iotHubClientHandle, connectionStatusCallback, this);
-    if (result != IOTHUB_CLIENT_OK)
-    {
-        throw std::runtime_error("can not register connection status callback");
-    }
-
     const size_t retryTimeoutLimitInSeconds = 0; // no retry limit
-    result = IoTHubClient_LL_SetRetryPolicy(iotHubClientHandle, IOTHUB_CLIENT_RETRY_LINEAR_BACKOFF, retryTimeoutLimitInSeconds);
-    if (result != IOTHUB_CLIENT_OK)
+    if (!client.setRetryPolicy(IOTHUB_CLIENT_RETRY_LINEAR_BACKOFF, retryTimeoutLimitInSeconds))
     {
         throw std::runtime_error("can not set retry policy");
     }
 
-    const unsigned long long IOTHUB_LL_TIMEOUT = 3 * 60 * 1000;
-    result = IoTHubClient_LL_SetOption(iotHubClientHandle, OPTION_MESSAGE_TIMEOUT, &IOTHUB_LL_TIMEOUT);
-    if (result != IOTHUB_CLIENT_OK)
+    if (!client.setMessageTimeout(std::chrono::minutes(3)))
     {
         throw std::runtime_error("can not set message timeout");
     }
 
-    result = IoTHubClient_LL_SetOption(iotHubClientHandle, OPTION_X509_CERT, parameter.X509Certificate.toUtf8().data());
-    if (result != IOTHUB_CLIENT_OK)
+    if (!client.setX509Certificate(parameter.X509Certificate.toUtf8().toStdString()))
     {
         throw std::runtime_error("can not set X509 certificate");
     }
 
-    result = IoTHubClient_LL_SetOption(iotHubClientHandle, OPTION_X509_PRIVATE_KEY, parameter.X509privateKey.toUtf8().data());
-    if (result != IOTHUB_CLIENT_OK)
+    if (!client.setX509PrivateKey(parameter.X509privateKey.toUtf8().toStdString()))
     {
         throw std::runtime_error("can not set X509 private key");
     }
@@ -96,74 +45,66 @@ Connection::Connection(const Parameter &parameter, IOTHUB_CLIENT_TRANSPORT_PROVI
     tick();
 }
 
-Connection::~Connection()
-{
-    IoTHubClient_LL_Destroy(iotHubClientHandle);
-}
-
 void Connection::tick()
 {
-    IoTHubClient_LL_DoWork(iotHubClientHandle);
+    client.doWork();
     QTimer::singleShot(10, this, SLOT(tick()));
+}
+
+
+
+std::map<std::string, std::string> toStd(const QStringMap &value) //TODO move into QStringMap
+{
+    std::map<std::string, std::string> result{};
+
+    for (const auto &itr : value.toStdMap())
+    {
+        result[itr.first.toStdString()] = itr.second.toStdString();
+    }
+
+    return result;
 }
 
 void Connection::sendMessage(const QString &data, const QString &contentType, const QString &contentEncoding, const QStringMap &headers)
 {
     qCDebug(logger) << "send message with header" << headers;
 
-    const auto raw = data.toUtf8();
-    std::unique_ptr<IOTHUB_MESSAGE_HANDLE_DATA_TAG, std::function<void(IOTHUB_MESSAGE_HANDLE_DATA_TAG*)>>
-    messageHandle(
-        IoTHubMessage_CreateFromByteArray(reinterpret_cast<const unsigned char*>(raw.data()), raw.length()),
-        IoTHubMessage_Destroy
-    );
+    iotsdk::MessageAdapter message{data.toUtf8().toStdString()};
 
 
-    if (!messageHandle)
+    if (!message.isValid())
     {
         sendError(SendError::MessageCreationError, 0);
         return;
     }
 
-    IOTHUB_MESSAGE_RESULT msgResult = IoTHubMessage_SetMessageId(messageHandle.get(), QUuid::createUuid().toString().toStdString().c_str());
-    if (msgResult != IOTHUB_MESSAGE_OK)
+    if (!message.setId(QUuid::createUuid().toString().toStdString()))
     {
-        sendError(SendError::MessageCreationError, msgResult);
+        sendError(SendError::MessageCreationError, 0);
         return;
     }
 
-    msgResult = IoTHubMessage_SetContentTypeSystemProperty(messageHandle.get(), contentType.toStdString().c_str());
-    if (msgResult != IOTHUB_MESSAGE_OK)
+    if (!message.setContentType(contentType.toStdString()))
     {
-        sendError(SendError::MessageCreationError, msgResult);
+        sendError(SendError::MessageCreationError, 0);
         return;
     }
 
-    msgResult = IoTHubMessage_SetContentEncodingSystemProperty(messageHandle.get(), contentEncoding.toStdString().c_str());
-    if (msgResult != IOTHUB_MESSAGE_OK)
+    if (!message.setContentEncoding(contentEncoding.toStdString()))
     {
-        sendError(SendError::MessageCreationError, msgResult);
+        sendError(SendError::MessageCreationError, 0);
         return;
     }
 
+    if (!message.addHeader(toStd(headers)))
     {
-        const auto properties = IoTHubMessage_Properties(messageHandle.get());
-
-        for (const auto &key : headers.keys()) {
-            const auto &value = headers[key];
-            const auto mapResult = Map_Add(properties, key.toStdString().c_str(), value.toStdString().c_str());
-            if (mapResult != MAP_OK)
-            {
-                sendError(SendError::MessageCreationError, mapResult); //TODO use different error
-                return;
-            }
-        }
+        sendError(SendError::MessageCreationError, 0);
+        return;
     }
 
-    IOTHUB_CLIENT_RESULT sendResult = IoTHubClient_LL_SendEventAsync(iotHubClientHandle, messageHandle.get(), sendConfirmationCallback, this);
-    if (sendResult != 0)
+    if (!client.sendMessage(message))
     {
-        sendError(SendError::RequestFailed, sendResult);
+        sendError(SendError::RequestFailed, 0);
         return;
     }
 }
@@ -172,17 +113,14 @@ void Connection::sendDeviceTwin(const QString &data)
 {
     qCDebug(logger) << "send device twin";
 
-    const auto raw = data.toUtf8();
-
-    const IOTHUB_CLIENT_RESULT sendResult = IoTHubClient_LL_SendReportedState(iotHubClientHandle, reinterpret_cast<const unsigned char*>(raw.data()), raw.size(), sendReportedStateCallback, this);
-    if (sendResult != 0)
+    if (!client.sendDeviceTwin(data.toUtf8().toStdString()))
     {
-        sendError(SendError::RequestFailed, sendResult);
+        sendError(SendError::RequestFailed, 0); //TODO use different error
         return;
     }
 }
 
-void Connection::onConnectStatusChanged(IOTHUB_CLIENT_CONNECTION_STATUS result, IOTHUB_CLIENT_CONNECTION_STATUS_REASON reason)
+void Connection::connectionStatusChanged(IOTHUB_CLIENT_CONNECTION_STATUS result, IOTHUB_CLIENT_CONNECTION_STATUS_REASON reason)
 {
     qCDebug(logger) << "Connection Status:"
              << ENUM_TO_STRING(IOTHUB_CLIENT_CONNECTION_STATUS, result)
@@ -200,7 +138,7 @@ void Connection::onConnectStatusChanged(IOTHUB_CLIENT_CONNECTION_STATUS result, 
     }
 }
 
-IOTHUBMESSAGE_DISPOSITION_RESULT Connection::onReceive(IOTHUB_MESSAGE_HANDLE message)
+IOTHUBMESSAGE_DISPOSITION_RESULT Connection::messageReceived(IOTHUB_MESSAGE_HANDLE message)
 {
     const char* buffer;
     size_t messageSize;
@@ -220,7 +158,7 @@ IOTHUBMESSAGE_DISPOSITION_RESULT Connection::onReceive(IOTHUB_MESSAGE_HANDLE mes
     }
 }
 
-void Connection::onSendConfirmed(IOTHUB_CLIENT_CONFIRMATION_RESULT result)
+void Connection::messageSendResult(IOTHUB_CLIENT_CONFIRMATION_RESULT result)
 {
     qCDebug(logger) << "send confirmation received:" << ENUM_TO_STRING(IOTHUB_CLIENT_CONFIRMATION_RESULT, result);
 
@@ -234,17 +172,17 @@ void Connection::onSendConfirmed(IOTHUB_CLIENT_CONFIRMATION_RESULT result)
     }
 }
 
-void Connection::onSendReportedState(int status_code)
+void Connection::deviceTwinSendResult(int statusCode)
 {
-    qCDebug(logger) << "send reported state received:" << status_code;
+    qCDebug(logger) << "send reported state received:" << statusCode;
 
-    if (status_code == 200) //NOTE 200 seems to be the success code
+    if (statusCode == 200) //NOTE 200 seems to be the success code
     {
         sent();
     }
     else
     {
-        sendError(SendError::ConfirmationFailed, status_code);
+        sendError(SendError::ConfirmationFailed, statusCode);
     }
 }
 
