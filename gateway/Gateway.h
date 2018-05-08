@@ -1,5 +1,6 @@
 #pragma once
 
+#include <Message.h>
 #include <QStringMap.h>
 #include <QObject>
 
@@ -18,7 +19,7 @@ public slots:
     void fromQueue(const QString &data, const QString &contentType, const QString &contentEncoding, const QStringMap &headers);
 
 signals:
-    void sendCloudMessage(const QString &data, const QString &contentType, const QString &contentEncoding, const QStringMap &headers);
+    void sendCloudMessage(const Message &);
     void sendCloudDeviceTwin(const QString &data);
 
 };

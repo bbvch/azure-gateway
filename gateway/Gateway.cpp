@@ -29,6 +29,7 @@ QStringMap removeAllWithPrefix(const QString &prefix, const QStringMap &value)
 void Gateway::fromQueue(const QString &data, const QString &contentType, const QString &contentEncoding, const QStringMap &headers)
 {
     const auto type = headers["gateway:type"];
+    const auto id = headers["gateway:message-id"];
 
     const QStringMap cloudHeader = removeAllWithPrefix("gateway:", headers);
 
@@ -42,7 +43,8 @@ void Gateway::fromQueue(const QString &data, const QString &contentType, const Q
         {
             qCWarning(logger) << "send undefined or unknown message type as message" << type;
         }
-        sendCloudMessage(data, contentType, contentEncoding, cloudHeader);
+        const Message message{cloudHeader, id, contentEncoding, contentType, data};
+        sendCloudMessage(message);
     }
 }
 

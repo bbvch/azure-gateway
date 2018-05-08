@@ -7,7 +7,6 @@
 #include <azureiot/iothub_client.h>
 
 #include <QThread>
-#include <QUuid>
 #include <QTimer>
 
 #include <memory>
@@ -65,11 +64,11 @@ std::map<std::string, std::string> toStd(const QStringMap &value) //TODO move in
     return result;
 }
 
-void Connection::sendMessage(const QString &data, const QString &contentType, const QString &contentEncoding, const QStringMap &headers)
+void Connection::sendMessage(const Message &raw)
 {
-    qCDebug(logger) << "send message with header" << headers;
+    qCDebug(logger) << "send message with header" << raw.header;
 
-    iotsdk::MessageAdapter message{data.toUtf8().toStdString()};
+    iotsdk::MessageAdapter message{raw.content.toUtf8().toStdString()};
 
 
     if (!message.isValid())
@@ -78,25 +77,28 @@ void Connection::sendMessage(const QString &data, const QString &contentType, co
         return;
     }
 
-    if (!message.setId(QUuid::createUuid().toString().toStdString()))
+    if (raw.id != "")
+    {
+        if (!message.setId(raw.id.toStdString()))
+        {
+            sendError(SendError::MessageCreationError, 0);
+            return;
+        }
+    }
+
+    if (!message.setContentType(raw.contentType.toStdString()))
     {
         sendError(SendError::MessageCreationError, 0);
         return;
     }
 
-    if (!message.setContentType(contentType.toStdString()))
+    if (!message.setContentEncoding(raw.contentEncoding.toStdString()))
     {
         sendError(SendError::MessageCreationError, 0);
         return;
     }
 
-    if (!message.setContentEncoding(contentEncoding.toStdString()))
-    {
-        sendError(SendError::MessageCreationError, 0);
-        return;
-    }
-
-    if (!message.addHeader(toStd(headers)))
+    if (!message.addHeader(toStd(raw.header)))
     {
         sendError(SendError::MessageCreationError, 0);
         return;

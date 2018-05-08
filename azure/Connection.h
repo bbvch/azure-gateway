@@ -1,6 +1,7 @@
 #pragma once
 
 #include "QStringMap.h"
+#include "Message.h"
 #include "iotsdk/ClientAdapter.h"
 
 #include <azureiot/iothub_client_ll.h>
@@ -54,7 +55,7 @@ signals:
     void received(const QString &data);
 
 public slots:
-    void sendMessage(const QString &data, const QString &contentType, const QString &contentEncoding, const QStringMap &headers);
+    void sendMessage(const Message &);
     void sendDeviceTwin(const QString& data);
 
 private slots:
