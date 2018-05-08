@@ -45,6 +45,7 @@ HEADERS += \
     azure/iotsdk/MessageAdapter.h \
     azure/iotsdk/ClientAdapter.h \
     azure/iotsdk/ClientAdapterHandler.h \
+    Message.h \
 
 target.path = /usr/bin/
 INSTALLS += target

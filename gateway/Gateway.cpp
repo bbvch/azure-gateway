@@ -42,7 +42,8 @@ void Gateway::fromQueue(const QString &data, const QString &contentType, const Q
         {
             qCWarning(logger) << "send undefined or unknown message type as message" << type;
         }
-        sendCloudMessage(data, contentType, contentEncoding, cloudHeader);
+        const Message message{cloudHeader, contentEncoding, contentType, data};
+        sendCloudMessage(message);
     }
 }
 

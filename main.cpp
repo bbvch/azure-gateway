@@ -16,6 +16,7 @@ int main(int argc, char *argv[])
 {
     qRegisterMetaType<azure::Connection::ConnectionError>();
     qRegisterMetaType<azure::Connection::SendError>();
+    qRegisterMetaType<Message>();
 
     QCoreApplication app(argc, argv);
 
