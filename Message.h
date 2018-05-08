@@ -8,6 +8,7 @@
 struct Message
 {
     QStringMap header;
+    QString id;
     QString contentEncoding;
     QString contentType;
     QString content;

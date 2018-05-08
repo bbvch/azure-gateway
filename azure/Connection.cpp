@@ -7,7 +7,6 @@
 #include <azureiot/iothub_client.h>
 
 #include <QThread>
-#include <QUuid>
 #include <QTimer>
 
 #include <memory>
@@ -78,10 +77,13 @@ void Connection::sendMessage(const Message &raw)
         return;
     }
 
-    if (!message.setId(QUuid::createUuid().toString().toStdString()))
+    if (raw.id != "")
     {
-        sendError(SendError::MessageCreationError, 0);
-        return;
+        if (!message.setId(raw.id.toStdString()))
+        {
+            sendError(SendError::MessageCreationError, 0);
+            return;
+        }
     }
 
     if (!message.setContentType(raw.contentType.toStdString()))
