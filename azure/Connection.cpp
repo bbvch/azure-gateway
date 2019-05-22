@@ -132,8 +132,8 @@ void Connection::sendDeviceTwin(const QString &data)
 void Connection::connectionStatusChanged(IOTHUB_CLIENT_CONNECTION_STATUS result, IOTHUB_CLIENT_CONNECTION_STATUS_REASON reason)
 {
     qCDebug(logger) << "Connection Status:"
-             << ENUM_TO_STRING(IOTHUB_CLIENT_CONNECTION_STATUS, result)
-             << ENUM_TO_STRING(IOTHUB_CLIENT_CONNECTION_STATUS_REASON, reason);
+            << MU_ENUM_TO_STRING(IOTHUB_CLIENT_CONNECTION_STATUS, result)
+            << MU_ENUM_TO_STRING(IOTHUB_CLIENT_CONNECTION_STATUS_REASON, reason);
 
     if ((result == IOTHUB_CLIENT_CONNECTION_AUTHENTICATED) && (reason == IOTHUB_CLIENT_CONNECTION_OK))
     {
@@ -142,7 +142,7 @@ void Connection::connectionStatusChanged(IOTHUB_CLIENT_CONNECTION_STATUS result,
     }
     else
     {
-        qCWarning(logger) << "connection error:" << ENUM_TO_STRING(IOTHUB_CLIENT_CONNECTION_STATUS_REASON, reason);
+        qCWarning(logger) << "connection error:" << MU_ENUM_TO_STRING(IOTHUB_CLIENT_CONNECTION_STATUS_REASON, reason);
         connectingError(ConnectionError::CanNotConnect, reason);
     }
 }
@@ -162,14 +162,14 @@ IOTHUBMESSAGE_DISPOSITION_RESULT Connection::messageReceived(IOTHUB_MESSAGE_HAND
     }
     else
     {
-        qCWarning(logger) << "Failure while unpacking incoming message" << ENUM_TO_STRING(IOTHUB_MESSAGE_RESULT, result);
+        qCWarning(logger) << "Failure while unpacking incoming message" << MU_ENUM_TO_STRING(IOTHUB_MESSAGE_RESULT, result);
         return IOTHUBMESSAGE_REJECTED;
     }
 }
 
 void Connection::messageSendResult(IOTHUB_CLIENT_CONFIRMATION_RESULT result)
 {
-    qCDebug(logger) << "send confirmation received:" << ENUM_TO_STRING(IOTHUB_CLIENT_CONFIRMATION_RESULT, result);
+    qCDebug(logger) << "send confirmation received:" << MU_ENUM_TO_STRING(IOTHUB_CLIENT_CONFIRMATION_RESULT, result);
 
     if (result == IOTHUB_CLIENT_CONFIRMATION_OK)
     {
