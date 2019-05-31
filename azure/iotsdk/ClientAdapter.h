@@ -38,7 +38,7 @@ public:
     void doWork();
 
 private:
-    std::unique_ptr<IOTHUB_CLIENT_LL_HANDLE_DATA_TAG, std::function<void(IOTHUB_CLIENT_LL_HANDLE_DATA_TAG*)>> handle;
+    std::unique_ptr<IOTHUB_CLIENT_CORE_LL_HANDLE_DATA_TAG, std::function<void(IOTHUB_CLIENT_CORE_LL_HANDLE_DATA_TAG*)>> handle;
     ClientAdapterHandler &handler;
 
 };
